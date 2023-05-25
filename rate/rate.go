@@ -7,10 +7,11 @@ package rate
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/cockroachdb/errors"
 )
 
 // Limit defines the maximum frequency of some events.
@@ -254,7 +255,7 @@ func (lim *Limiter) wait(ctx context.Context, n int, t time.Time, newTimer func(
 	lim.mu.Unlock()
 
 	if n > burst && limit != Inf {
-		return fmt.Errorf("rate: Wait(n=%d) exceeds limiter's burst %d", n, burst)
+		return errors.Newf("rate: Wait(n=%d) exceeds limiter's burst %d", n, burst)
 	}
 	// Check if ctx is already cancelled
 	select {
@@ -270,7 +271,7 @@ func (lim *Limiter) wait(ctx context.Context, n int, t time.Time, newTimer func(
 	// Reserve
 	r := lim.reserveN(t, n, waitLimit)
 	if !r.ok {
-		return fmt.Errorf("rate: Wait(n=%d) would exceed context deadline", n)
+		return errors.Newf("rate: Wait(n=%d) would exceed context deadline", n)
 	}
 	// Wait if necessary
 	delay := r.DelayFrom(t)
